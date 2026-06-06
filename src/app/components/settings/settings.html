@@ -1,0 +1,150 @@
+<div style="max-width:600px; margin: 0 auto; padding: 2rem 1rem;">
+
+  <!-- Back -->
+  <a routerLink="/" class="btn btn-ghost" style="margin-bottom:1.5rem; display:inline-flex;">
+    ← Back to Home
+  </a>
+
+  <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:2rem;">
+    <span style="font-size:1.75rem;">⚙️</span>
+    <div>
+      <h1 style="font-size:1.4rem; font-weight:700;">Settings</h1>
+      <p style="color:var(--text-muted); font-size:0.85rem;">Configure AI providers and exam preferences</p>
+    </div>
+  </div>
+
+  <!-- ── Provider status banner ── -->
+  <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+    <div style="flex:1; min-width:140px; background:var(--surface); border:1px solid; border-radius:8px; padding:0.6rem 0.9rem; display:flex; align-items:center; gap:0.5rem;"
+      [style.border-color]="hasGemini() ? 'rgba(63,185,80,0.4)' : 'var(--border)'">
+      <span>{{hasGemini() ? '🟢' : '⚪'}}</span>
+      <div>
+        <div style="font-size:0.78rem; font-weight:700;" [style.color]="hasGemini() ? 'var(--success)' : 'var(--text-muted)'">Gemini Flash</div>
+        <div style="font-size:0.7rem; color:var(--text-muted);">{{hasGemini() ? 'Primary provider' : 'Not configured'}}</div>
+      </div>
+    </div>
+    <div style="flex:1; min-width:140px; background:var(--surface); border:1px solid; border-radius:8px; padding:0.6rem 0.9rem; display:flex; align-items:center; gap:0.5rem;"
+      [style.border-color]="hasGroq() ? 'rgba(88,166,255,0.4)' : 'var(--border)'">
+      <span>{{hasGroq() ? '🔵' : '⚪'}}</span>
+      <div>
+        <div style="font-size:0.78rem; font-weight:700;" [style.color]="hasGroq() ? 'var(--d1)' : 'var(--text-muted)'">Groq · Llama 3.3 70B</div>
+        <div style="font-size:0.7rem; color:var(--text-muted);">{{hasGroq() ? 'Fallback ready' : 'Not configured'}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fallback flow pill -->
+  @if (hasGemini() || hasGroq()) {
+    <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:0.6rem 1rem; margin-bottom:1.25rem; font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+      <span>⚡ Active flow:</span>
+      @if (hasGemini()) { <span style="color:var(--success); font-weight:600;">Gemini Flash</span> }
+      @if (hasGemini() && hasGroq()) { <span>→ fallback to</span> }
+      @if (hasGroq()) { <span style="color:var(--d1); font-weight:600;">Groq / Llama 3.3 70B</span> }
+      @if (!hasGemini() && hasGroq()) { <span style="font-size:0.75rem;">(Groq is primary — add Gemini key to use it first)</span> }
+    </div>
+  }
+
+  <!-- ── Gemini Card ── -->
+  <div class="card" style="margin-bottom:1rem;">
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+      <span style="font-size:1.1rem;">✨</span>
+      <h2 style="font-size:1rem; font-weight:700;">Gemini Flash (Primary)</h2>
+      @if (hasGemini()) { <span class="badge" style="background:rgba(63,185,80,0.12); color:var(--success); border:1px solid rgba(63,185,80,0.3); margin-left:auto;">Active</span> }
+    </div>
+    <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:1rem; line-height:1.6;">
+      Google Gemini 2.0 Flash — fast, capable, generous free tier.
+      Get a key at <strong style="color:var(--primary);">aistudio.google.com</strong>.
+    </p>
+    <label class="label">API Key</label>
+    <div style="display:flex; gap:0.5rem;">
+      <input type="password" class="input" placeholder="AIza…" [ngModel]="geminiKey()" (ngModelChange)="geminiKey.set($event)" style="flex:1;" />
+      <button class="btn btn-primary" (click)="saveGemini()" [disabled]="!geminiKey()">
+        {{savedWhich() === 'gemini' ? '✓ Saved' : 'Save'}}
+      </button>
+    </div>
+    @if (savedWhich() === 'gemini') {
+      <p style="color:var(--success); font-size:0.8rem; margin-top:0.4rem; font-weight:600;">✓ Gemini key saved.</p>
+    }
+  </div>
+
+  <!-- ── Groq Card ── -->
+  <div class="card" style="margin-bottom:1rem; border-color: {{hasGroq() ? 'rgba(88,166,255,0.25)' : 'var(--border)'}};">
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+      <span style="font-size:1.1rem;">⚡</span>
+      <h2 style="font-size:1rem; font-weight:700;">Groq · Llama 3.3 70B (Fallback)</h2>
+      @if (hasGroq()) { <span class="badge" style="background:rgba(88,166,255,0.12); color:var(--d1); border:1px solid rgba(88,166,255,0.3); margin-left:auto;">Ready</span> }
+    </div>
+    <p style="color:var(--text-muted); font-size:0.82rem; margin-bottom:1rem; line-height:1.6;">
+      Groq runs Llama 3.3 70B at extreme speed — used automatically when Gemini fails or is unavailable.
+      Free API keys at <strong style="color:var(--primary);">console.groq.com</strong>.
+    </p>
+    <label class="label">API Key</label>
+    <div style="display:flex; gap:0.5rem;">
+      <input type="password" class="input" placeholder="gsk_…" [ngModel]="groqKey()" (ngModelChange)="groqKey.set($event)" style="flex:1;" />
+      <button class="btn btn-outline" (click)="saveGroq()" [disabled]="!groqKey()">
+        {{savedWhich() === 'groq' ? '✓ Saved' : 'Save'}}
+      </button>
+    </div>
+    @if (savedWhich() === 'groq') {
+      <p style="color:var(--success); font-size:0.8rem; margin-top:0.4rem; font-weight:600;">✓ Groq key saved.</p>
+    }
+    <div class="divider"></div>
+    <div style="font-size:0.78rem; color:var(--text-muted); display:flex; gap:1.5rem; flex-wrap:wrap;">
+      <span>🔁 Auto-fallback when Gemini returns 4xx/5xx</span>
+      <span>⚡ ~300 tokens/sec on Groq</span>
+      <span>🆓 Free tier available</span>
+    </div>
+  </div>
+
+  <!-- ── History Card ── -->
+  <div class="card" style="margin-bottom:1rem;">
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+      <span style="font-size:1.1rem;">📊</span>
+      <h2 style="font-size:1rem; font-weight:700;">Exam History</h2>
+    </div>
+    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
+      {{resultCount()}} exam session(s) stored locally.
+    </p>
+    <button class="btn" [class]="confirmClear() ? 'btn-danger' : 'btn-outline'" (click)="clearHistory()" [disabled]="resultCount() === 0">
+      @if (confirmClear()) { ⚠ Click again to confirm } @else { 🗑 Clear All History }
+    </button>
+  </div>
+
+  <!-- ── DVA-C02 Info ── -->
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+      <span style="font-size:1.1rem;">📋</span>
+      <h2 style="font-size:1rem; font-weight:700;">DVA-C02 Exam Info</h2>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+      @for (info of [
+        { label: 'Format', value: '65 scored questions' },
+        { label: 'Duration', value: '130 minutes' },
+        { label: 'Pass score', value: '72% (720/1000)' },
+        { label: 'Question types', value: 'MCQ + Multi-select' },
+      ]; track info.label) {
+        <div style="background:var(--surface-2); border-radius:8px; padding:0.65rem 0.85rem;">
+          <div style="font-size:0.72rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.2rem;">{{info.label}}</div>
+          <div style="font-size:0.9rem; font-weight:600;">{{info.value}}</div>
+        </div>
+      }
+    </div>
+    @for (d of [
+      { name: 'Development with AWS Services', w: 32, color: 'var(--d1)' },
+      { name: 'Security', w: 26, color: 'var(--d2)' },
+      { name: 'Deployment', w: 24, color: 'var(--d3)' },
+      { name: 'Troubleshooting & Optimization', w: 18, color: 'var(--d4)' },
+    ]; track d.name) {
+      <div style="margin-bottom:0.4rem;">
+        <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:0.2rem;">
+          <span style="color:var(--text-muted);">{{d.name}}</span>
+          <span style="font-weight:700;" [style.color]="d.color">{{d.w}}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="d.w" [style.background]="d.color"></div>
+        </div>
+      </div>
+    }
+  </div>
+
+</div>

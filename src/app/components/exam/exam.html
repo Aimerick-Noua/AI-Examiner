@@ -1,0 +1,163 @@
+@if (exam.session()) {
+<div style="height:100vh; display:flex; flex-direction:column; overflow:hidden;">
+
+  <!-- ── Top bar ──────────────────────────────────────────────── -->
+  <div style="background:var(--surface); border-bottom:1px solid var(--border); padding:0.6rem 1.25rem; display:flex; align-items:center; gap:1rem; flex-shrink:0; z-index:10;">
+
+    <button class="btn btn-ghost" style="padding:0.4rem 0.6rem; font-size:0.8rem;" (click)="sidebarOpen.update(v=>!v)">
+      ☰
+    </button>
+
+    <!-- Progress -->
+    <div style="flex:1; max-width:320px;">
+      <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:var(--text-muted); margin-bottom:3px;">
+        <span>{{answered()}}/{{total()}} answered</span>
+        <span>{{progress()}}%</span>
+      </div>
+      <div class="progress-bar" style="height:5px;">
+        <div class="progress-fill" [style.width.%]="progress()"></div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; color:var(--text-muted); margin-left:auto;">
+      <span style="width:8px; height:8px; border-radius:50%; background:var(--success); display:inline-block;"></span> {{answered()}} answered &nbsp;
+      <span style="width:8px; height:8px; border-radius:50%; background:var(--warning); display:inline-block;"></span> {{flaggedCount()}} flagged
+    </div>
+
+    <!-- Timer -->
+    <div style="font-family:monospace; font-size:1rem; font-weight:700; padding:0.3rem 0.75rem; background:var(--surface-2); border-radius:6px; border:1px solid var(--border);"
+      [style.color]="timerWarning() ? 'var(--danger)' : 'var(--text)'">
+      ⏱ {{timerDisplay()}}
+    </div>
+
+    <button class="btn btn-danger" style="font-size:0.82rem; padding:0.4rem 0.85rem;" (click)="confirmSubmit()">Submit</button>
+  </div>
+
+  <!-- ── Body ────────────────────────────────────────────────── -->
+  <div style="display:flex; flex:1; overflow:hidden;">
+
+    <!-- ── Sidebar (question navigator) ── -->
+    <div style="width:220px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; padding:1rem; transition:margin-left 0.2s;"
+      [style.margin-left]="sidebarOpen() ? '0' : '-220px'"
+      [style.position]="'relative'"
+    >
+      <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">Questions</div>
+      <div class="q-nav-grid">
+        @for (q of questions(); track q.id; let i = $index) {
+          <button class="q-nav-btn" [class]="navButtonState(i)" (click)="exam.goTo(i); sidebarOpen.set(false)">{{i+1}}</button>
+        }
+      </div>
+      <div class="divider"></div>
+      <div style="display:flex; flex-direction:column; gap:0.3rem; font-size:0.75rem; color:var(--text-muted);">
+        <div style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:12px; border-radius:2px; border:1px solid var(--success); background:rgba(63,185,80,0.1); display:inline-block;"></span>Answered</div>
+        <div style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:12px; border-radius:2px; border:1px solid var(--warning); background:rgba(210,153,34,0.1); display:inline-block;"></span>Flagged</div>
+        <div style="display:flex; align-items:center; gap:0.4rem;"><span style="width:12px; height:12px; border-radius:2px; border:1px solid var(--primary); background:var(--primary-glow); display:inline-block;"></span>Current</div>
+      </div>
+    </div>
+
+    <!-- ── Main question area ── -->
+    <div style="flex:1; overflow-y:auto; padding:1.5rem 2rem;" [style.margin-left]="!sidebarOpen() ? '0' : '0'">
+      @if (current(); as q) {
+        <div style="max-width:720px; margin:0 auto;" class="fade-in">
+
+          <!-- Question header -->
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+            <span style="font-size:0.82rem; color:var(--text-muted); font-weight:600;">Q{{index()+1}} / {{total()}}</span>
+            <span class="badge" [class]="domainClass(q.domain)">{{DOMAIN_NAMES[q.domain]}}</span>
+            <span class="badge" style="background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border);">{{q.service}}</span>
+            <span class="badge" style="background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border);">{{q.difficulty}}</span>
+            <button
+              class="btn btn-ghost"
+              style="margin-left:auto; font-size:0.8rem; padding:0.3rem 0.7rem;"
+              [style.color]="isFlagged() ? 'var(--warning)' : ''"
+              (click)="toggleFlag()"
+            >
+              {{isFlagged() ? '🚩 Flagged' : '⚑ Flag'}}
+            </button>
+          </div>
+
+          <!-- Scenario -->
+          @if (q.scenario) {
+            <div class="scenario-block" style="margin-bottom:1rem;">
+              <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--primary); margin-bottom:0.3rem;">Scenario</div>
+              {{q.scenario}}
+            </div>
+          }
+
+          <!-- Question text -->
+          <div style="font-size:1rem; font-weight:600; margin-bottom:1.25rem; line-height:1.65; color:var(--text);">
+            {{q.question}}
+          </div>
+
+          <!-- Options -->
+          <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:2rem;">
+            @for (opt of q.options; track opt.label) {
+              <button
+                class="option-card"
+                [class.selected]="selectedOption() === opt.label"
+                (click)="select(opt.label)"
+              >
+                <span class="option-key">{{opt.label}}</span>
+                <span style="font-size:0.9rem; line-height:1.55;">{{opt.text}}</span>
+              </button>
+            }
+          </div>
+
+          <!-- Tags -->
+          @if (q.tags.length > 0) {
+            <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:1.5rem;">
+              @for (tag of q.tags; track tag) {
+                <span style="background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border); border-radius:999px; font-size:0.7rem; padding:0.15rem 0.5rem;">{{tag}}</span>
+              }
+            </div>
+          }
+
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Bottom nav ───────────────────────────────────────────── -->
+  <div style="background:var(--surface); border-top:1px solid var(--border); padding:0.75rem 1.5rem; display:flex; align-items:center; gap:0.75rem; flex-shrink:0;">
+    <button class="btn btn-outline" (click)="exam.prev()" [disabled]="index() === 0" style="font-size:0.85rem;">← Prev</button>
+    <div style="flex:1; text-align:center; font-size:0.82rem; color:var(--text-muted);">
+      @if (isFlagged()) { <span style="color:var(--warning);">🚩 Flagged for review</span> }
+      @else if (selectedOption()) { <span style="color:var(--success);">✓ Answered</span> }
+      @else { <span>Not answered yet</span> }
+    </div>
+    @if (index() === total() - 1) {
+      <button class="btn btn-primary" (click)="confirmSubmit()" style="font-size:0.85rem;">Submit Exam →</button>
+    } @else {
+      <button class="btn btn-primary" (click)="exam.next()" style="font-size:0.85rem;">Next →</button>
+    }
+  </div>
+
+</div>
+} @else {
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:1rem; color:var(--text-muted);">
+    <div class="spinner spinner-lg"></div>
+    <p>Loading exam…</p>
+  </div>
+}
+
+<!-- ── Submit Confirm Modal ────────────────────────────────────── -->
+@if (showConfirm()) {
+  <div class="modal-overlay" (click)="cancelSubmit()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:0.5rem;">Submit Exam?</h2>
+      <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:1rem; line-height:1.6;">
+        You have answered <strong style="color:var(--text);">{{answered()}} of {{total()}}</strong> questions.
+        @if (unansweredCount() > 0) {
+          <br><span style="color:var(--warning);">⚠ {{unansweredCount()}} question(s) unanswered.</span>
+        }
+        @if (flaggedCount() > 0) {
+          <br><span style="color:var(--warning);">🚩 {{flaggedCount()}} question(s) flagged for review.</span>
+        }
+      </p>
+      <div style="display:flex; gap:0.75rem;">
+        <button class="btn btn-outline" style="flex:1; justify-content:center;" (click)="cancelSubmit()">Continue</button>
+        <button class="btn btn-primary" style="flex:1; justify-content:center;" (click)="submit()">Submit →</button>
+      </div>
+    </div>
+  </div>
+}

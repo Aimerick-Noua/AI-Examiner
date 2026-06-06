@@ -1,0 +1,222 @@
+@if (result(); as r) {
+<div style="max-width:860px; margin:0 auto; padding:2rem 1rem 4rem;">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem; margin-bottom:2rem;">
+    <div>
+      <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Exam Results</div>
+      <h1 style="font-size:1.4rem; font-weight:800;">DVA-C02 · Developer Associate</h1>
+      <div style="font-size:0.8rem; color:var(--text-muted);">{{formatDate(r.date)}} · {{formatTime(r.timeTakenSeconds)}} · {{difficultyLabel(r.config.difficulty)}}</div>
+    </div>
+    <a routerLink="/" class="btn btn-outline">← New Evaluation</a>
+  </div>
+
+  <!-- ── Score hero ─────────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:1.25rem; display:flex; align-items:center; gap:2rem; flex-wrap:wrap;">
+
+    <!-- Ring -->
+    <div style="flex-shrink:0; position:relative; width:130px; height:130px;">
+      <svg width="130" height="130" style="transform:rotate(-90deg);">
+        <circle cx="65" cy="65" r="54" fill="none" stroke="var(--surface-2)" stroke-width="10"/>
+        <circle cx="65" cy="65" r="54" fill="none" [attr.stroke]="ringColor()" stroke-width="10"
+          stroke-linecap="round"
+          [attr.stroke-dasharray]="2*3.14159*54"
+          [attr.stroke-dashoffset]="ringStroke()"
+          style="transition:stroke-dashoffset 0.8s ease;"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="font-size:1.75rem; font-weight:900; line-height:1;" [style.color]="ringColor()">{{score()}}%</div>
+        <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">score</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="flex:1; display:flex; flex-direction:column; gap:0.75rem; min-width:200px;">
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <span class="badge" style="font-size:0.9rem; padding:0.35rem 1rem;" [style.background]="passed() ? 'rgba(63,185,80,0.15)' : 'rgba(248,81,73,0.15)'" [style.color]="passed() ? 'var(--success)' : 'var(--danger)'" style="border:1px solid currentColor;">
+          {{passed() ? '✓ PASS' : '✗ FAIL'}}
+        </span>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Pass threshold: 72%</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem;">
+        @for (stat of [
+          { label: 'Correct', value: correctQ(), color: 'var(--success)' },
+          { label: 'Wrong', value: wrongCount(), color: 'var(--danger)' },
+          { label: 'Total', value: totalQ(), color: 'var(--text)' }
+        ]; track stat.label) {
+          <div style="background:var(--surface-2); border-radius:8px; padding:0.6rem 0.75rem; text-align:center;">
+            <div style="font-size:1.35rem; font-weight:800;" [style.color]="stat.color">{{stat.value}}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">{{stat.label}}</div>
+          </div>
+        }
+      </div>
+      @if (!passed()) {
+        <div style="font-size:0.82rem; color:var(--warning); background:rgba(210,153,34,0.1); border:1px solid var(--warning); border-radius:6px; padding:0.5rem 0.75rem;">
+          ⚡ You need {{72 - score()}} more points to pass. With 24 days left, focused daily practice will get you there.
+        </div>
+      } @else {
+        <div style="font-size:0.82rem; color:var(--success); background:rgba(63,185,80,0.1); border:1px solid var(--success); border-radius:6px; padding:0.5rem 0.75rem;">
+          🎉 Excellent! You passed this practice exam. Keep strengthening weak domains before the real test.
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Domain breakdown ───────────────────────────────────── -->
+  <div class="card" style="margin-bottom:1.25rem;">
+    <h2 style="font-size:0.9rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:1rem;">Domain Breakdown</h2>
+    <div style="display:flex; flex-direction:column; gap:0.85rem;">
+      @for (dr of activeDomainResults(); track dr.domain) {
+        <div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.3rem; gap:0.5rem; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <span class="badge" [class]="'bg-d'+dr.domain">D{{dr.domain}}</span>
+              <span style="font-size:0.85rem; font-weight:600;">{{DOMAIN_NAMES[dr.domain]}}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.82rem;">
+              <span style="color:var(--text-muted);">{{dr.correct}}/{{dr.total}}</span>
+              <span style="font-weight:800; min-width:40px; text-align:right;" [style.color]="dr.percentage >= 72 ? 'var(--success)' : dr.percentage >= 50 ? 'var(--warning)' : 'var(--danger)'">{{dr.percentage}}%</span>
+            </div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="domainBarWidth(dr.percentage)" [style.background]="DOMAIN_COLORS[dr.domain]"></div>
+          </div>
+          @if (dr.weakTopics.length > 0) {
+            <div style="display:flex; gap:0.3rem; flex-wrap:wrap; margin-top:0.35rem;">
+              @for (t of dr.weakTopics; track t) {
+                <span style="background:rgba(248,81,73,0.1); color:var(--danger); border:1px solid rgba(248,81,73,0.3); border-radius:999px; font-size:0.68rem; padding:0.1rem 0.45rem;">⚠ {{t}}</span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ── Patterns / AI Weakness Analysis ───────────────────── -->
+  @if (r.patterns.length > 0) {
+    <div class="card" style="margin-bottom:1.25rem; border-color:rgba(255,153,0,0.3);">
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+        <span style="font-size:1.1rem;">🔍</span>
+        <h2 style="font-size:0.9rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--primary);">Weakness Analysis</h2>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        @for (pattern of r.patterns; track pattern) {
+          <div style="display:flex; align-items:flex-start; gap:0.75rem; background:var(--surface-2); border-radius:8px; padding:0.7rem 0.9rem;">
+            <span style="color:var(--primary); flex-shrink:0; font-size:0.9rem;">→</span>
+            <span style="font-size:0.85rem; color:var(--text); line-height:1.55;">{{pattern}}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── Question Review ────────────────────────────────────── -->
+  <div>
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+      <h2 style="font-size:0.9rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);">
+        Question Review ({{filteredQuestions().length}})
+      </h2>
+      <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+        <button class="btn" [class]="filterDomain()==='wrong' ? 'btn-primary' : 'btn-ghost'" style="font-size:0.75rem; padding:0.3rem 0.65rem;" (click)="filterDomain.set('wrong')">
+          Wrong ({{wrongCount()}})
+        </button>
+        <button class="btn" [class]="filterDomain()==='all' ? 'btn-primary' : 'btn-ghost'" style="font-size:0.75rem; padding:0.3rem 0.65rem;" (click)="filterDomain.set('all')">All</button>
+        @for (d of domains; track d) {
+          <button class="btn btn-ghost" style="font-size:0.75rem; padding:0.3rem 0.65rem;" [style.color]="filterDomain()===d ? DOMAIN_COLORS[d] : ''" (click)="filterDomain.set(d)">D{{d}}</button>
+        }
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:0.6rem;">
+      @for (q of filteredQuestions(); track q.id) {
+        <!-- Question accordion -->
+        <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden;" [style.border-color]="isCorrect(q) ? 'rgba(63,185,80,0.25)' : 'rgba(248,81,73,0.25)'">
+
+          <!-- Header (always visible) -->
+          <div
+            style="display:flex; align-items:flex-start; gap:0.75rem; padding:0.85rem 1rem; cursor:pointer; background:var(--surface); transition:background 0.15s;"
+            (click)="toggleQuestion(q.id)"
+          >
+            <span style="font-size:1rem; flex-shrink:0; margin-top:1px;">{{isCorrect(q) ? '✅' : '❌'}}</span>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.3rem;">
+                <span class="badge" [class]="'bg-d'+q.domain" style="font-size:0.68rem;">{{q.service}}</span>
+                <span style="font-size:0.72rem; color:var(--text-muted);">{{q.difficulty}}</span>
+                @if (!isCorrect(q) && userSelected(q)) {
+                  <span style="font-size:0.72rem; color:var(--danger);">You chose: {{userSelected(q)}}</span>
+                  <span style="font-size:0.72rem; color:var(--success);">Correct: {{q.correctAnswer}}</span>
+                } @else if (!isCorrect(q)) {
+                  <span style="font-size:0.72rem; color:var(--warning);">Not answered · Correct: {{q.correctAnswer}}</span>
+                }
+              </div>
+              <div style="font-size:0.85rem; line-height:1.5; color:var(--text); overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+                {{q.question}}
+              </div>
+            </div>
+            <span style="color:var(--text-muted); flex-shrink:0; margin-top:2px;">{{isExpanded(q.id) ? '▲' : '▼'}}</span>
+          </div>
+
+          <!-- Expanded body -->
+          @if (isExpanded(q.id)) {
+            <div style="background:var(--surface-2); border-top:1px solid var(--border); padding:1rem;" class="fade-in">
+
+              <!-- Scenario -->
+              @if (q.scenario) {
+                <div class="scenario-block" style="margin-bottom:1rem;">
+                  <div style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--primary); margin-bottom:0.2rem;">Scenario</div>
+                  {{q.scenario}}
+                </div>
+              }
+
+              <!-- Full question -->
+              <div style="font-size:0.88rem; font-weight:600; margin-bottom:0.85rem; line-height:1.6;">{{q.question}}</div>
+
+              <!-- Options -->
+              <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1rem;">
+                @for (opt of q.options; track opt.label) {
+                  <div class="option-card disabled" [class]="optionClass(q, opt.label)" style="cursor:default;">
+                    <span class="option-key">{{opt.label}}</span>
+                    <span style="font-size:0.85rem; line-height:1.5;">{{opt.text}}</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Explanation -->
+              <div style="background:rgba(63,185,80,0.08); border:1px solid rgba(63,185,80,0.25); border-radius:8px; padding:0.85rem; margin-bottom:0.75rem;">
+                <div style="font-size:0.72rem; font-weight:700; color:var(--success); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.4rem;">✓ Why {{q.correctAnswer}} is correct</div>
+                <div style="font-size:0.85rem; line-height:1.65; color:var(--text);">{{q.explanation}}</div>
+              </div>
+
+              <!-- Why YOUR answer was wrong -->
+              @if (wrongAnswerExplanation(q)) {
+                <div style="background:rgba(248,81,73,0.08); border:1px solid rgba(248,81,73,0.25); border-radius:8px; padding:0.85rem; margin-bottom:0.75rem;">
+                  <div style="font-size:0.72rem; font-weight:700; color:var(--danger); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.4rem;">✗ Why {{userSelected(q)}} is wrong</div>
+                  <div style="font-size:0.85rem; line-height:1.65; color:var(--text);">{{wrongAnswerExplanation(q)}}</div>
+                </div>
+              }
+
+              <!-- AWS Tip -->
+              @if (q.awsTip) {
+                <div style="background:rgba(255,153,0,0.08); border:1px solid rgba(255,153,0,0.25); border-radius:8px; padding:0.75rem; display:flex; gap:0.5rem; align-items:flex-start;">
+                  <span style="flex-shrink:0;">💡</span>
+                  <div style="font-size:0.82rem; line-height:1.55; color:var(--text);">
+                    <span style="font-weight:700; color:var(--primary);">Exam Tip: </span>{{q.awsTip}}
+                  </div>
+                </div>
+              }
+
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+</div>
+} @else {
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:1rem; color:var(--text-muted);">
+    <div class="spinner spinner-lg"></div>
+    <p>Loading results…</p>
+  </div>
+}
