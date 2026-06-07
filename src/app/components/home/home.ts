@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GeminiService } from '../../services/gemini.service';
 import { ExamService } from '../../services/exam.service';
-import { ExamConfig, Domain, DOMAIN_NAMES, DOMAIN_COLORS, ExamResult } from '../../models/question.model';
+import { ExamConfig, Domain, DOMAIN_NAMES, DOMAIN_COLORS, ExamResult, AwsService, DVA_SERVICES } from '../../models/question.model';
 
 @Component({
   selector: 'app-home',
@@ -22,6 +22,26 @@ export class HomeComponent {
   selectedDomains = signal<Domain[] | 'all'>('all');
   timeLimitMinutes = signal<number | null>(null);
   domainMode = signal<'all' | 'custom'>('all');
+
+  // ── Service focus mode ───────────────────────────────────────
+  examMode = signal<'full' | 'service'>('full');
+  selectedService = signal<string | null>(null);
+
+  readonly DVA_SERVICES = DVA_SERVICES;
+  readonly serviceCategories: string[] = [...new Set(DVA_SERVICES.map(s => s.category))];
+
+  servicesByCategory(cat: string): AwsService[] {
+    return DVA_SERVICES.filter(s => s.category === cat);
+  }
+
+  setExamMode(mode: 'full' | 'service'): void {
+    this.examMode.set(mode);
+    if (mode === 'full') this.selectedService.set(null);
+  }
+
+  toggleService(short: string): void {
+    this.selectedService.update(cur => cur === short ? null : short);
+  }
 
   // ── UI state ──────────────────────────────────────────────────
   loading = this.gemini.loading;
@@ -84,6 +104,7 @@ export class HomeComponent {
       questionCount: this.questionCount(),
       domains: this.selectedDomains(),
       timeLimitMinutes: this.timeLimitMinutes(),
+      selectedService: this.examMode() === 'service' ? (this.selectedService() ?? undefined) : undefined,
     };
 
     try {

@@ -157,11 +157,35 @@ export class GeminiService {
     const domainList = domains.map(d => `Domain ${d}: ${DOMAIN_NAMES[d]}`).join('\n');
     const count = config.questionCount;
     const diff  = config.difficulty === 'all' ? 'mix of foundational, associate, and advanced' : config.difficulty;
+    const svc   = config.selectedService;
 
-    return `You are a strict AWS Developer Associate (DVA-C02) exam question generator. Your questions must be EXAM-QUALITY: tricky, scenario-based, with plausible distractors that test real understanding.
+    const serviceFocusBlock = svc ? `
+⚠ SERVICE FOCUS MODE: Generate ALL ${count} questions EXCLUSIVELY about ${svc}.
 
-TASK: Generate exactly ${count} questions at difficulty: ${diff}.
+UNIQUENESS IS MANDATORY — each question MUST test a completely different concept. Absolutely no repeated topics, scenarios, or question angles. Spread questions across ALL of these knowledge areas (use as many as needed to fill ${count} unique questions):
+  1. Core concepts and architecture of ${svc}
+  2. Configuration options, settings, and parameters
+  3. Deployment and environment management
+  4. Scaling, auto-scaling, and capacity behaviour
+  5. Networking and VPC integration
+  6. Security — IAM roles, resource policies, encryption
+  7. Monitoring, logging, and observability (CloudWatch, X-Ray)
+  8. Error handling, retry logic, and failure modes
+  9. Integration with other AWS services (S3, RDS, SQS, etc.)
+  10. CI/CD, deployment strategies (blue/green, canary, rolling)
+  11. Limits, quotas, and service-specific constraints
+  12. CLI/SDK usage patterns
+  13. Cost and pricing model considerations
+  14. Common exam traps and misconceptions specific to ${svc}
+  15. Troubleshooting and debugging scenarios
 
+- Use a DIFFERENT scenario company for EVERY question (e.g., Q1: FinTechCorp, Q2: HealthStartup, Q3: RetailGiant…)
+- Vary the question verb: "MOST cost-effective", "MOST operationally efficient", "LEAST privilege", "FIRST step", etc.
+- Do NOT generate two questions about the same sub-feature of ${svc}
+- ${svc} must be the central subject of every question
+` : '';
+
+    const domainSection = svc ? '' : `
 DOMAIN COVERAGE (proportional to real exam weights):
 ${domainList}
 
@@ -170,13 +194,19 @@ DOMAIN DEFINITIONS:
 - Domain 2 – Security (26%): IAM, KMS, SSM Parameter Store, Cognito auth, VPC, Security Groups, S3 encryption, STS, Secrets Manager
 - Domain 3 – Deployment (24%): CodeCommit, CodeBuild, CodeDeploy, CodePipeline, Elastic Beanstalk, CloudFormation, SAM, CI/CD
 - Domain 4 – Troubleshooting & Optimization (18%): CloudWatch, X-Ray, CloudTrail, error handling, exponential backoff, performance tuning
+`;
 
+    return `You are a strict AWS Developer Associate (DVA-C02) exam question generator. Your questions must be EXAM-QUALITY: tricky, scenario-based, with plausible distractors that test real understanding.
+${serviceFocusBlock}
+TASK: Generate exactly ${count} questions at difficulty: ${diff}.
+${domainSection}
 STRICT RULES:
 1. Each question MUST use a real company scenario (e.g., "FinTechCorp, a startup processing 2M transactions/day…")
-2. Make distractors PLAUSIBLE — wrong answers should look reasonable to someone who hasn't studied carefully
-3. Test common AWS exam misconceptions (e.g., confusing sync vs async Lambda, visibility timeout vs DLQ, GSI vs LSI)
-4. wrongAnswerExplanations must explain WHY that option fails in the specific scenario
-5. awsTip must be a memorable exam trick or key distinction
+2. ALL ${count} questions must be UNIQUE — no repeated topics, angles, or scenarios
+3. Make distractors PLAUSIBLE and TRICKY — wrong answers must look correct to someone who studied but not deeply enough. Exploit common misconceptions, confusable service behaviours, and subtle AWS gotchas
+4. Test exam-trapping knowledge: default behaviours that surprise people, limits that matter, options that exist but don't solve the problem, and configurations that look right but break under the scenario's constraints
+5. wrongAnswerExplanations must explain exactly WHY that option fails in this specific scenario (not just generic statements)
+6. awsTip must be a sharp, memorable exam trick — something that lets a candidate distinguish the right answer under time pressure
 
 DIFFICULTY GUIDE (${diff}):
 - foundational: Direct service knowledge ("What does X do?")
@@ -189,7 +219,7 @@ JSON SCHEMA:
 [{
   "id": "Q001",
   "domain": 1,
-  "service": "Lambda",
+  "service": "${svc ?? 'Lambda'}",
   "tags": ["concurrency", "cold-start"],
   "difficulty": "associate",
   "scenario": "TechRetail, an e-commerce platform processing 100K orders/day...",

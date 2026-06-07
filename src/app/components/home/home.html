@@ -118,6 +118,57 @@
       }
     </div>
 
+    <!-- ── Exam Mode ─────────────────────────────────────────── -->
+    <div style="margin-bottom:1.25rem;">
+      <label class="label">Exam Mode</label>
+      <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+        <button class="btn" [class]="examMode()==='full' ? 'btn-primary' : 'btn-outline'" (click)="setExamMode('full')" style="flex:1; justify-content:center;">
+          Full Exam
+        </button>
+        <button class="btn" [class]="examMode()==='service' ? 'btn-primary' : 'btn-outline'" (click)="setExamMode('service')" style="flex:1; justify-content:center;">
+          Service Focus
+        </button>
+      </div>
+
+      @if (examMode() === 'service') {
+        <div class="fade-in" style="background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:1rem;">
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; line-height:1.5;">
+            Select one AWS service — all questions will focus exclusively on it. Great for drilling a weak area.
+          </p>
+
+          @for (cat of serviceCategories; track cat) {
+            <div style="margin-bottom:0.85rem;">
+              <div style="font-size:0.65rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.4rem;">{{cat}}</div>
+              <div style="display:flex; flex-wrap:wrap; gap:0.3rem;">
+                @for (svc of servicesByCategory(cat); track svc.short) {
+                  <button
+                    class="btn"
+                    [style.background]="selectedService() === svc.short ? 'rgba(255,153,0,0.15)' : 'var(--surface)'"
+                    [style.color]="selectedService() === svc.short ? 'var(--primary)' : 'var(--text-muted)'"
+                    [style.border-color]="selectedService() === svc.short ? 'rgba(255,153,0,0.5)' : 'var(--border)'"
+                    style="font-size:0.75rem; padding:0.25rem 0.65rem; border:1px solid; border-radius:6px; font-weight:600; transition:all 0.15s;"
+                    (click)="toggleService(svc.short)"
+                  >{{svc.short}}</button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (selectedService()) {
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; padding-top:0.75rem; border-top:1px solid var(--border);">
+              <span style="font-size:0.8rem; color:var(--text-muted);">Focused on:</span>
+              <span style="background:rgba(255,153,0,0.15); color:var(--primary); border:1px solid rgba(255,153,0,0.35); border-radius:6px; padding:0.2rem 0.65rem; font-size:0.8rem; font-weight:700;">
+                {{selectedService()}}
+              </span>
+              <button style="margin-left:auto; font-size:0.75rem; color:var(--text-muted); background:none; border:none; cursor:pointer; padding:0.2rem 0.4rem;" (click)="selectedService.set(null)">× Clear</button>
+            </div>
+          } @else {
+            <p style="font-size:0.75rem; color:var(--danger); margin-top:0.5rem;">Select a service above to enable Service Focus mode.</p>
+          }
+        </div>
+      }
+    </div>
+
     <!-- Error -->
     @if (errorMsg()) {
       <div style="background:rgba(248,81,73,0.1); border:1px solid var(--danger); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; color:var(--danger); font-size:0.85rem;" class="fade-in">
